@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync} from 'node:fs';
+import {JSDOM} from 'jsdom';
+import {protection,sha} from '../src/protection.js';
+const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../drizzle/0000_busy_miracleman.sql',import.meta.url),'utf8'));
+const DB={prepare(sql){return {bind(...args){return {async first(){return sqlite.prepare(sql).get(...args)||null},async run(){return sqlite.prepare(sql).run(...args)}}}}}};
+let serial=0;const env={DB};
+async function call(path='',method='GET',data,token,extra={}){const request=new Request('https://lovely.test/api/locks'+path,{method,headers:{'cf-connecting-ip':String(++serial),Origin:'https://lovely.test',...(token?{Authorization:'Bearer '+token}:{}),...extra},...(data?{body:JSON.stringify(data)}:{})});const result=await protection(request,env);return {status:result.status,data:await result.json()}}
+const create=await call('','POST',{title:'Test',url:'https://example.com/',email:'test@example.com',password:'strong-password'});assert.equal(create.status,201);const {id,ownerToken}=create.data;
+const stored=sqlite.prepare('SELECT * FROM lovely_locks').get();assert.notEqual(stored.password_hash,'strong-password');assert.notEqual(stored.owner_hash,ownerToken);
+const meta=await call('/'+id);assert.equal(meta.data.locked,true);assert.equal(meta.data.url,undefined);assert.equal(meta.data.emailReady,false);
+assert.equal((await call('/'+id+'/unlock','POST',{password:'incorrect'})).status,401);
+assert.equal((await call('/'+id+'/unlock','POST',{password:'strong-password'})).data.url,'https://example.com/');
+assert.equal((await call('/'+id,'PATCH',{enabled:false},'wrong-token')).status,403);
+assert.equal((await call('/'+id,'DELETE',undefined,'wrong-token')).status,403);
+assert.equal((await call('/'+id,'PATCH',{enabled:false},ownerToken,{Origin:'https://evil.test'})).status,403);
+assert.equal((await call('/'+id+'/forgot','POST',{email:'test@example.com'})).status,503);
+env.RESEND_API_KEY='test-key';env.EMAIL_FROM='test@example.com';let sent;const realFetch=globalThis.fetch;globalThis.fetch=async(url,options)=>{assert.equal(url,'https://api.resend.com/emails');sent=JSON.parse(options.body);return new Response('{}',{status:200})};
+assert.equal((await call('/'+id+'/forgot','POST',{email:'wrong@example.com'})).status,200);assert.equal(sent,undefined);
+assert.equal((await call('/'+id+'/forgot','POST',{email:'test@example.com'})).status,200);assert.equal(sent.to[0],'test@example.com');const resetToken=sent.text.match(/#([a-f0-9]{64})/)[1];
+const reset=await call('/'+id+'/reset','POST',{token:resetToken,password:'new-password'});assert.equal(reset.status,200);
+assert.equal((await call('/'+id+'/reset','POST',{token:resetToken,password:'new-password'})).status,400);
+assert.equal((await call('/'+id,'PATCH',{enabled:false},ownerToken)).status,403);
+assert.equal((await call('/'+id+'/unlock','POST',{password:'new-password'})).status,200);
+const expired='a'.repeat(64);sqlite.prepare('UPDATE lovely_locks SET reset_hash=?,reset_expires=? WHERE id=?').run(await sha(expired),Date.now()-1,id);assert.equal((await call('/'+id+'/reset','POST',{token:expired,password:'new-password'})).status,400);
+assert.equal((await call('/'+id,'PATCH',{enabled:false},reset.data.ownerToken)).status,200);
+assert.equal((await call('/'+id+'/unlock','POST',{})).status,200);
+assert.equal((await call('/'+id,'DELETE',undefined,reset.data.ownerToken)).status,200);assert.equal((await call('/'+id)).status,404);globalThis.fetch=realFetch;
+// Vérifie les actions de la bibliothèque sans toucher aux données réelles.
+const dom=new JSDOM(readFileSync(new URL('../static/index.html',import.meta.url),'utf8'),{url:'https://lovely.test/',runScripts:'outside-only'});const w=dom.window;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.eval(readFileSync(new URL('../static/app.js',import.meta.url),'utf8'));assert.equal(w.document.querySelectorAll('.card').length,1);
+w.document.querySelector('.delete-btn').click();w.document.querySelector('#cancelDelete').click();assert.equal(w.document.querySelectorAll('.card').length,1);
+w.document.querySelector('#appTab').click();w.document.querySelector('#addBtn').click();const form=w.document.querySelector('#addForm');form.elements.title.value='Game';form.elements.url.value='https://example.com/game';form.dispatchEvent(new w.Event('submit',{cancelable:true}));assert.equal(w.document.querySelector('.card h3').textContent,'Game');w.document.querySelector('.delete-btn').click();w.document.querySelector('#confirmDelete').click();await new Promise(r=>setTimeout(r,10));assert.equal(w.document.querySelectorAll('.card').length,0);w.document.querySelector('#webTab').click();assert.equal(w.document.querySelectorAll('.card').length,1);dom.window.close();
+console.log('PASS: hashed passwords, owner rights, CSRF, unlock, email/reset, single-use/expiry, disable/delete, library actions.');

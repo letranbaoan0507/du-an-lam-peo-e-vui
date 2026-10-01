@@ -1,0 +1,14 @@
+{
+  "name": "lovely-independent", "version": "1.0.0", "private": true, "type": "module",
+  "engines": {"node": ">=22.13.0"},
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3000", "build": "next build", "start": "next start --hostname 127.0.0.1 --port 3000",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "db:import": "node --env-file-if-exists=.env.local scripts/import-sites.mjs",
+    "db:backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
+    "db:restore": "node --env-file-if-exists=.env.local scripts/restore.mjs",
+    "test": "node --test tests/integration.mjs"
+  },
+  "dependencies": {"next": "16.3.8", "react": "19.2.4", "react-dom": "19.2.4", "pg": "8.23.1"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.8", "jsdom": "30.1.1"}
+}

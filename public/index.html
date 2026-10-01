@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lovely · Kho website của bạn</title>
+  <meta name="description" content="Lưu trữ và mở các website cá nhân của bạn.">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/migration.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">♥</span><span>Lovely</span></a>
+    <div class="top-actions">
+      <button class="explore" id="exploreBtn">◉&nbsp; Khám phá⌄</button>
+      <label class="search"><span>⌕</span><input id="search" placeholder="Tìm kiếm..." aria-label="Tìm kiếm website"></label>
+      <button class="support" id="supportBtn">☕&nbsp; Ủng hộ</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Chào mừng bạn đến với vũ trụ tình yêu <span>♥</span></h1>
+      <p>Kho lưu trữ những website và món quà bạn tự tạo.</p>
+      <div class="switcher"><button class="active" id="webTab" aria-pressed="true">◉&nbsp; Web</button><button id="appTab" aria-pressed="false">▣&nbsp; App / Game</button></div>
+    </section>
+    <section class="library-head"><div><h2 id="sectionTitle">◉&nbsp; Website</h2><p id="countText">1 website của bạn</p></div><button class="add" id="backupBtn" style="margin-left:auto;margin-right:10px">Sao lưu / Nhập</button><input type="file" accept="application/json,.json" id="importBackup" hidden><button class="add" id="addBtn">＋ Thêm website</button></section>
+    <section class="grid" id="grid"></section>
+    <section class="empty" id="empty" hidden><div>♡</div><h3>Chưa tìm thấy website</h3><p>Thử từ khóa khác hoặc thêm website mới.</p></section>
+  </main>
+
+  <dialog id="addDialog"><form id="addForm"><button type="button" class="close" id="closeDialog" aria-label="Đóng">×</button><h2 id="dialogTitle">Thêm website của bạn</h2><p class="muted">Lưu một đường link để mở nhanh từ kho Lovely của bạn.</p><label>Tên website<input name="title" required placeholder="Ví dụ: Website sinh nhật"></label><label>Link website<input name="url" type="url" required placeholder="https://..."></label><label>Danh mục<select name="category"><option>Tình yêu</option><option>Sinh nhật</option><option>Cá nhân</option><option>Khác</option></select></label><label>Mô tả<input name="description" placeholder="Mô tả ngắn"></label><div class="dialog-actions"><button type="button" id="cancelDialog" class="ghost">Hủy</button><button type="submit" class="primary">Lưu website</button></div></form></dialog>
+  <dialog id="securityDialog"><div class="security-body"><button type="button" class="close" id="securityClose" aria-label="Đóng">×</button><div class="lock-symbol">♡</div><h2 id="securityTitle">Mật khẩu website</h2><p id="securitySubtitle" class="muted"></p><div id="securityContent"></div><p id="securityMessage" role="status" aria-live="polite"></p></div></dialog>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/app.js"></script>
+</body></html>
